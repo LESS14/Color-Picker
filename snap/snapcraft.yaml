@@ -1,0 +1,85 @@
+name: color-picker
+version: '1.0.4'
+summary: A colour picker and colour editor for web designers and digital artists
+description: |
+  ColorPicker is an advance screen color picker based on Qt's QColorDialog library, A colour picker and colour editor for web designers and digital artists, created by a designer and digital artist. With Color Picker, identifying the colours, saving etc is quick and easy job.
+  
+grade: stable
+confinement: strict
+icon: snap/gui/icon.png
+base: core20
+compression : lzo
+
+architectures:
+  - build-on: amd64
+    run-on: amd64
+    
+environment:
+  SNAP_DESKTOP_RUNTIME: $SNAP/qt5-core20
+  
+
+apps:
+  color-picker:
+    command: bin/desktop-launch $SNAP/usr/bin/color-picker
+    environment:
+       DISABLE_WAYLAND: 1
+       IS_SNAP: 1
+    desktop: usr/share/applications/color-picker.desktop
+    plugs:
+        - home
+        - unity7
+        - opengl
+        - x11
+        - desktop
+        - gsettings
+        - desktop-legacy
+        - wayland
+
+plugs:
+  gsettings:
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes
+  qt5-core20:
+    interface: content
+    target: $SNAP/qt5-core20
+    default-provider: qt5-core20
+
+parts:
+   desktop-qt5-build:
+     plugin: nil
+     build-packages:
+       - build-essential
+       - qtbase5-dev
+       - dpkg-dev
+       
+   build-src:
+     source: https://github.com/keshavbhatt/ColorPicker.git
+     source-subdir: src/
+     plugin: qmake
+     after: [desktop-qt5-build]
+     qmake-parameters:
+       - "DEFINES+=COLORPICKER_SNAPCRAFT_BUILD"
+     override-build: |
+            snapcraftctl build
+            sed -i 's|Icon=.*|Icon=${SNAP}/meta/gui/icon.png|g' ${SNAPCRAFT_PART_SRC}/src/color-picker.desktop
+            mkdir -p ${SNAPCRAFT_PART_INSTALL}/usr/share/applications/
+            cp -rf ${SNAPCRAFT_PART_SRC}/src/color-picker.desktop ${SNAPCRAFT_PART_INSTALL}/usr/share/applications/color-picker.desktop
+      
+   desktop-launch:
+     plugin: nil
+     source: https://github.com/keshavbhatt/qt5-core20.git
+     after: [build-src]
+     override-build: |
+            snapcraftctl build
+            mkdir -p ${SNAPCRAFT_PART_INSTALL}/bin/
+            cp -rf ${SNAPCRAFT_PART_SRC}/snap_launcher/bin/desktop-launch ${SNAPCRAFT_PART_INSTALL}/bin/
